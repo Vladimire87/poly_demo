@@ -1,5 +1,5 @@
 class CommentsController < ApplicationController
-  before_action :set_comment, only: %i[ show edit update destroy ]
+  before_action :set_comment, only: %i[show edit update destroy]
 
   # GET /comments or /comments.json
   def index
@@ -21,14 +21,15 @@ class CommentsController < ApplicationController
 
   # POST /comments or /comments.json
   def create
-    @comment = Comment.new(comment_params)
+    @commentable = find_commentable
+    @comment = @commentable.comments.build(comment_params)
 
     respond_to do |format|
       if @comment.save
-        format.html { redirect_to comment_url(@comment), notice: "Comment was successfully created." }
+        format.html { redirect_to @commentable, notice: "Comment was successfully created." }
         format.json { render :show, status: :created, location: @comment }
       else
-        format.html { render :new, status: :unprocessable_entity }
+        format.html { redirect_to @commentable, alert: "Error" }
         format.json { render json: @comment.errors, status: :unprocessable_entity }
       end
     end
@@ -58,13 +59,22 @@ class CommentsController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_comment
-      @comment = Comment.find(params[:id])
-    end
 
-    # Only allow a list of trusted parameters through.
-    def comment_params
-      params.require(:comment).permit(:content)
+  def find_commentable
+    params.each do |name, value|
+      if name =~ /(.+)_id$/
+        return $1.classify.constantize.find(value)
+      end
     end
+  end
+
+  # Use callbacks to share common setup or constraints between actions.
+  def set_comment
+    @comment = Comment.find(params[:id])
+  end
+
+  # Only allow a list of trusted parameters through.
+  def comment_params
+    params.require(:comment).permit(:content)
+  end
 end
